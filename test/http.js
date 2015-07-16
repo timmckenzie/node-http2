@@ -549,7 +549,7 @@ describe('http.js', function() {
         var receiveFrameTypes = [];
         var sentFrameTypes = [];
         var message = 'Hello world!';
-        var server = http2.createServer(options, function (request, response) {
+        var server = http2.createServer(serverOptions, function (request, response) {
           expect(request.url).to.equal(path);
 
           request.on('data', util.noop);
