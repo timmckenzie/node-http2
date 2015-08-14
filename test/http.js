@@ -595,41 +595,49 @@ describe('http.js', function() {
       });
     });
     describe('Handle socket error', function () {
-      it('should raise errors on socket error', function (done) {
+      it('HTTPS on Connection Refused error', function (done) {
         var path = '/x';
-        var message = 'qwertyuiopasdfghjklzxcvbnm';
+        var request = http2.request('https://127.0.0.1:6666' + path);
 
-        var server = http2.createServer(serverOptions, function (request, response) {
-          expect(request.url).to.equal(path);
-          request.on('data', util.noop);
+        request.on('error', function (err) {
+          expect(err.errno).to.equal('ECONNREFUSED');
+          done();
+        });
 
-          request.once('end', function () {
-            for (var i = 0; i < 1024; i++) {
-              response.write(message);
-            }
-            response.end();
+        request.on('response', function (response) {
+          server._server._handle.destroy();
+
+          response.on('data', util.noop);
+
+          response.once('end', function () {
+            done(new Error('Request should have failed'));
           });
         });
 
-        server.listen(1247, function () {
-          var request = http2.request('https://127.0.0.1:6666' + path);
+        request.end();
 
-          request.on('error', function (err) {
-            done();
-          });
+      });
+      it('HTTP on Connection Refused error', function (done) {
+        var path = '/x';
 
-          request.on('response', function (response) {
-            server._server._handle.destroy();
+        var request = http2.raw.request('http://127.0.0.1:6666' + path);
 
-            response.on('data', util.noop);
-
-            response.once('end', function () {
-              done(new Error('Request should have failed'));
-            });
-          });
-
-          request.end();
+        request.on('error', function (err) {
+          expect(err.errno).to.equal('ECONNREFUSED');
+          done();
         });
+
+        request.on('response', function (response) {
+          server._server._handle.destroy();
+
+          response.on('data', util.noop);
+
+          response.once('end', function () {
+            done(new Error('Request should have failed'));
+          });
+        });
+
+        request.end();
       });
     });
     describe('server push', function() {
