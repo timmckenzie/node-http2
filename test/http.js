@@ -594,6 +594,44 @@ describe('http.js', function() {
         });
       });
     });
+    describe('Handle socket error', function () {
+      it('should raise errors on socket error', function (done) {
+        var path = '/x';
+        var message = 'qwertyuiopasdfghjklzxcvbnm';
+
+        var server = http2.createServer(serverOptions, function (request, response) {
+          expect(request.url).to.equal(path);
+          request.on('data', util.noop);
+
+          request.once('end', function () {
+            for (var i = 0; i < 1024; i++) {
+              response.write(message);
+            }
+            response.end();
+          });
+        });
+
+        server.listen(1247, function () {
+          var request = http2.request('https://127.0.0.1:6666' + path);
+
+          request.on('error', function (err) {
+            done();
+          });
+
+          request.on('response', function (response) {
+            server._server._handle.destroy();
+
+            response.on('data', util.noop);
+
+            response.once('end', function () {
+              done(new Error('Request should have failed'));
+            });
+          });
+
+          request.end();
+        });
+      });
+    });
     describe('server push', function() {
       it('should work as expected', function(done) {
         var path = '/x';
