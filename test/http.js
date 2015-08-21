@@ -3,6 +3,7 @@ var util = require('./util');
 var fs = require('fs');
 var path = require('path');
 var url = require('url');
+var childProcess = require('child_process');
 
 var http2 = require('../lib/http');
 var https = require('https');
@@ -584,5 +585,31 @@ describe('http.js', function() {
         });
       });
     });
+    describe('Handle unexpected TCP disconnect', function () {
+      it('should raise error event', function (done) {
+        //starting server in another process to ba able to end TCP connect in a bad way.
+        var serverProcess = childProcess.spawn('/usr/local/bin/node', ['./example/server.js'], {
+          pwd: __dirname
+
+        });
+
+        //wait for server to finish starting.
+        setTimeout(function () {
+          try {
+            var request = http2.request('https://localhost:8080/server.js');
+            request.on('response', function (response) {
+              serverProcess.kill('SIGKILL');
+            });
+
+            request.on('error', function (err) {
+              console.log('got error ' + err.toString());
+              done();
+            });
+          } catch (err) {
+            done();
+          }
+        }, 1000);
+      });
+    })
   });
 });
